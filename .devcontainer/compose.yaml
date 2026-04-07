@@ -1,0 +1,12 @@
+services:
+  containers-node24-dev:
+    container_name: containers-node24-dev
+    build:
+      context: ../src
+      dockerfile: Containerfile
+    command: /bin/sh -c "sleep infinity"
+    volumes:
+      - ../:/src
+      - ${HOME:-$USERPROFILE}/.ssh:/root/.ssh:ro
+    env_file:
+      - .env

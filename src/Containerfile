@@ -1,0 +1,101 @@
+# 1. List of all available tags: https://hub.docker.com/_/node/tags
+# 2. Details about selecting a container image: https://hub.docker.com/_/node
+# 3. Debian releases: https://www.debian.org/releases/
+# 4. Information on node versions: https://nodejs.org/en/about/previous-releases
+
+# To find an image tag from #1:
+# - Use the linux amd64 variant from #2
+# - Choose latest long-term-support (LTS) version of nodejs from #4 that is available in #1
+# - Choose the latest supported Debian release from #3 that is available in #1
+# - Find the matching tag in #1
+
+# Stage with Python installed (official image)
+# Python tags: https://hub.docker.com/_/python
+FROM python:3.14.3-slim@sha256:fb83750094b46fd6b8adaa80f66e2302ecbe45d513f6cece637a841e1025b4ca AS py
+
+FROM docker.io/node:24.14.1-trixie
+
+# Copy Python runtime + stdlib from official Python image
+COPY --from=py /usr/local/ /usr/local/
+
+# Tool versions
+# Obtain the version number from: https://learn.microsoft.com/en-us/cli/azure/release-notes-azure-cli
+# Only use the major, minor, and patch version numbers
+# renovate: datasource=github-tags depName=Azure/azure-cli extractVersion=^azure-cli-(?<version>.*)$
+ARG AZURE_CLI_VERSION=2.84.0
+# Pulumi releases: https://www.pulumi.com/docs/install/versions/
+# renovate: datasource=github-releases depName=pulumi/pulumi extractVersion=^v(?<version>.*)$
+ARG PULUMI_VERSION=3.228.0
+# Obtain the version number from: https://dl.k8s.io/release/stable.txt
+# Version will be something like v1.32.2 but commands below require using the major and minor version only
+# kubectl releases: https://kubernetes.io/releases/
+# renovate: datasource=github-releases depName=kubernetes/kubernetes extractVersion=^v(?<version>\d+\.\d+)
+ARG KUBECTL_MINOR_VERSION=1.35
+
+# pnpm releases: https://github.com/pnpm/pnpm/releases
+# renovate: datasource=github-releases depName=pnpm/pnpm extractVersion=^v(?<version>.*)$
+ARG PNPM_VERSION=10.33.0
+
+# Shared devtools from containers.base (install-devtools.sh, apply-templates, merge-xml)
+# renovate: datasource=github-tags depName=spritely/containers.base extractVersion=^v(?<version>.*)$
+ARG CONTAINERS_BASE_VERSION=0.2.3
+
+# Shared devtools and scripts from containers.base
+# Bootstrap curl (may not be in base image), then fetch and run install-devtools.sh
+# which installs curl, wget, jq, git, bat, bats, tree, zsh, yq, claude, codex, uv, copier, etc.
+RUN apt-get update && apt-get install -y curl \
+    && BASE_URL="https://raw.githubusercontent.com/spritely/containers.base/v${CONTAINERS_BASE_VERSION}/src" \
+    && curl -fsSL "${BASE_URL}/install-devtools.sh" -o /tmp/install-devtools.sh \
+    && bash /tmp/install-devtools.sh \
+    && curl -fsSL "${BASE_URL}/apply-templates" -o /usr/local/bin/apply-templates \
+    && chmod +x /usr/local/bin/apply-templates \
+    && curl -fsSL "${BASE_URL}/merge-xml" -o /usr/local/bin/merge-xml \
+    && chmod +x /usr/local/bin/merge-xml
+
+# Project-specific tools
+RUN apt-get update && apt-get install -y \
+    apt-transport-https \
+    ca-certificates \
+    gnupg \
+    lsb-release \
+    sudo \
+    # Docker-in-Docker support
+    fuse-overlayfs \
+    # Enable docker in docker
+    && curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null \
+    && apt-get update && apt-get install -y docker-ce \
+    # Install Azure CLI, see: https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-linux?pivots=apt
+    && curl -sLS https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | tee /etc/apt/keyrings/microsoft.gpg > /dev/null \
+    && chmod go+r /etc/apt/keyrings/microsoft.gpg \
+    && AZ_DIST=bookworm \
+    && AZ_VER=${AZURE_CLI_VERSION} \
+    && echo "Types: deb\nURIs: https://packages.microsoft.com/repos/azure-cli/\nSuites: ${AZ_DIST}\nComponents: main\nArchitectures: $(dpkg --print-architecture)\nSigned-by: /etc/apt/keyrings/microsoft.gpg" | tee /etc/apt/sources.list.d/azure-cli.sources \
+    && apt-get update && apt-get install -y azure-cli=${AZ_VER}-1~${AZ_DIST} \
+    # Install Pulumi CLI, see: https://www.pulumi.com/docs/install/
+    && curl -fsSL https://get.pulumi.com | sh -s -- --version ${PULUMI_VERSION} \
+    # Move pulumi to /usr/local/bin so it's in the PATH for all users
+    && mv /root/.pulumi/bin/* /usr/local/bin/ \
+    # Install kubectl CLI, see: https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/
+    && curl -fsSL https://pkgs.k8s.io/core:/stable:/v${KUBECTL_MINOR_VERSION}/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg \
+    && chmod 644 /etc/apt/keyrings/kubernetes-apt-keyring.gpg \
+    && echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v${KUBECTL_MINOR_VERSION}/deb/ /" | tee /etc/apt/sources.list.d/kubernetes.list \
+    && chmod 644 /etc/apt/sources.list.d/kubernetes.list \
+    && apt-get update && apt-get install -y kubectl \
+    # Grant built-in node user sudo permissions without password prompt
+    && echo "node ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers \
+    # Add node user to the docker group to enable docker usage without sudo
+    && usermod -aG docker node \
+    # Clean up
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN corepack enable && corepack enable pnpm && corepack prepare pnpm@${PNPM_VERSION} --activate
+
+# Add uv to PATH
+ENV PATH="/root/.local/bin:${PATH}"
+
+ENV PULUMI_SKIP_UPDATE_CHECK=true
+
+# Start docker in docker
+ENTRYPOINT ["sh", "-c", "dockerd > /dev/null 2>&1 & exec \"$@\"", "--"]
