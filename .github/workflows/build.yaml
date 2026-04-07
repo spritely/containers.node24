@@ -45,7 +45,7 @@ jobs:
           registryHost: docker.io
           context: ./src
           dockerfile: ./src/Containerfile
-          imageNames: spritelydev/dotnet10-devcontainer
+          imageNames: spritelydev/node24-devcontainer
           version: ${{ steps.version.outputs.version }}
           writeSummary: true
 
