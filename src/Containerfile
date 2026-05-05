@@ -34,7 +34,7 @@ ARG KUBECTL_MINOR_VERSION=1.36
 
 # pnpm releases: https://github.com/pnpm/pnpm/releases
 # renovate: datasource=github-releases depName=pnpm/pnpm extractVersion=^v(?<version>.*)$
-ARG PNPM_VERSION=10.33.2
+ARG PNPM_VERSION=10.33.3
 
 # Shared devtools from containers.base (install-devtools.sh, apply-templates, merge-xml)
 # renovate: datasource=github-tags depName=spritely/containers.base extractVersion=^v(?<version>.*)$
