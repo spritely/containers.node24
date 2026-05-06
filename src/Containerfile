@@ -13,7 +13,7 @@
 # Python tags: https://hub.docker.com/_/python
 FROM python:3.14.4-slim@sha256:c11aee3b3cae066f55d1e9318fc812673aa6557073b0db0d792b59491b262e0c AS py
 
-FROM docker.io/node:24.14.1-trixie@sha256:e4ceb04a1f1dd4823a1ab6ef8d2182c09d6299b507c70f20bd0eb9921a78354d
+FROM docker.io/node:24.15.0-trixie@sha256:135dc9a66aef366e09958c18dab705081d77fb31eccffe8c3865fac9d3e42a1d
 
 # Copy Python runtime + stdlib from official Python image
 COPY --from=py /usr/local/ /usr/local/
