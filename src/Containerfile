@@ -11,7 +11,7 @@
 
 # Stage with Python installed (official image)
 # Python tags: https://hub.docker.com/_/python
-FROM python:3.14.6-slim@sha256:fe45aec842a1256ca15d90f319f943c34c6d1ad0585f3c3cd4009ae23c4e932d AS py
+FROM python:3.14.6-slim@sha256:c79315c9ba2403aecb221fb9090486be9af43cdc2372959ca7ccf6b17ebe9912 AS py
 
 FROM docker.io/node:24.16.0-trixie@sha256:41e183430cb891114093422e05a10f249c6bbfcf51c7a57d620cada287bf0bd2
 
