@@ -9,14 +9,7 @@
 # - Choose the latest supported Debian release from #3 that is available in #1
 # - Find the matching tag in #1
 
-# Stage with Python installed (official image)
-# Python tags: https://hub.docker.com/_/python
-FROM python:3.14.6-slim@sha256:b877e50bd90de10af8d82c57a022fc2e0dc731c5320d762a27986facfc3355c1 AS py
-
 FROM docker.io/node:24.18.0-trixie@sha256:5ac1f09047e215d1e4df7fbdf95ff86ca14a35632380b6672d6c9c62d5ac3800
-
-# Copy Python runtime + stdlib from official Python image
-COPY --from=py /usr/local/ /usr/local/
 
 # Tool versions
 # Obtain the version number from: https://learn.microsoft.com/en-us/cli/azure/release-notes-azure-cli
@@ -38,7 +31,7 @@ ARG PNPM_VERSION=11.11.0
 
 # Shared devtools from containers.base (install-devtools.sh, apply-templates, merge-xml)
 # renovate: datasource=github-tags depName=spritely/containers.base extractVersion=^v(?<version>.*)$
-ARG CONTAINERS_BASE_VERSION=0.2.89
+ARG CONTAINERS_BASE_VERSION=0.3.2
 
 # Shared devtools and scripts from containers.base
 # Bootstrap curl (may not be in base image), then fetch and run install-devtools.sh
@@ -68,6 +61,9 @@ RUN apt-get update && apt-get install -y \
     # Install Azure CLI, see: https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-linux?pivots=apt
     && curl -sLS https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | tee /etc/apt/keyrings/microsoft.gpg > /dev/null \
     && chmod go+r /etc/apt/keyrings/microsoft.gpg \
+    # Azure CLI has no trixie suite yet; pin to bookworm.
+    # Revisit when packages.microsoft.com publishes trixie.
+    #&& AZ_DIST=$(lsb_release -cs) \
     && AZ_DIST=bookworm \
     && AZ_VER=${AZURE_CLI_VERSION} \
     && echo "Types: deb\nURIs: https://packages.microsoft.com/repos/azure-cli/\nSuites: ${AZ_DIST}\nComponents: main\nArchitectures: $(dpkg --print-architecture)\nSigned-by: /etc/apt/keyrings/microsoft.gpg" | tee /etc/apt/sources.list.d/azure-cli.sources \
@@ -90,9 +86,6 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 RUN corepack enable && corepack enable pnpm && corepack prepare pnpm@${PNPM_VERSION} --activate
-
-# Add uv to PATH
-ENV PATH="/root/.local/bin:${PATH}"
 
 ENV PULUMI_SKIP_UPDATE_CHECK=true
 
