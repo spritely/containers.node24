@@ -31,7 +31,12 @@ ARG PNPM_VERSION=11.12.0
 
 # Shared devtools from containers.base (install-devtools.sh, apply-templates, merge-xml)
 # renovate: datasource=github-tags depName=spritely/containers.base extractVersion=^v(?<version>.*)$
-ARG CONTAINERS_BASE_VERSION=0.6.0
+ARG CONTAINERS_BASE_VERSION=0.8.2
+
+# Rename the image's built-in 'node' user to 'dev' (still 1000:1000) so the
+# account name matches all our other devcontainers.
+RUN groupmod --new-name dev node \
+    && usermod --login dev --home /home/dev --move-home node
 
 # Shared devtools and scripts from containers.base
 # Bootstrap curl (may not be in base image), then fetch and run install-devtools.sh
@@ -79,10 +84,10 @@ RUN apt-get update && apt-get install -y \
     && KUBECTL_VERSION=$(curl -fsSL "https://dl.k8s.io/release/stable-${KUBECTL_MINOR_VERSION}.txt") \
     && curl -fsSL "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" -o /usr/local/bin/kubectl \
     && chmod +x /usr/local/bin/kubectl \
-    # Grant built-in node user sudo permissions without password prompt
-    && echo "node ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers \
-    # Add node user to the docker group to enable docker usage without sudo
-    && usermod -aG docker node \
+    # Grant dev user sudo permissions without password prompt
+    && echo "dev ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers \
+    # Add dev user to the docker group to enable docker usage without sudo
+    && usermod -aG docker dev \
     # Clean up
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
@@ -93,3 +98,4 @@ ENV PULUMI_SKIP_UPDATE_CHECK=true
 
 # Start docker in docker
 ENTRYPOINT ["sh", "-c", "dockerd > /dev/null 2>&1 & exec \"$@\"", "--"]
+CMD ["sleep", "infinity"]
