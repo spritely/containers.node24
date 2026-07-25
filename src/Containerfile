@@ -9,7 +9,7 @@
 # - Choose the latest supported Debian release from #3 that is available in #1
 # - Find the matching tag in #1
 
-FROM docker.io/node:24.18.0-trixie@sha256:5ac1f09047e215d1e4df7fbdf95ff86ca14a35632380b6672d6c9c62d5ac3800
+FROM docker.io/node:24.18.0-trixie@sha256:eb2c73a27cf714b4b6b030f88ab72e62192c38b7d313ea3456695b8ae03c5f3c
 
 # Tool versions
 # Obtain the version number from: https://learn.microsoft.com/en-us/cli/azure/release-notes-azure-cli
