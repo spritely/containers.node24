@@ -18,7 +18,7 @@ FROM docker.io/node:24.18.0-trixie@sha256:eb2c73a27cf714b4b6b030f88ab72e62192c38
 ARG AZURE_CLI_VERSION=2.88.0
 # Pulumi releases: https://www.pulumi.com/docs/install/versions/
 # renovate: datasource=github-releases depName=pulumi/pulumi extractVersion=^v(?<version>.*)$
-ARG PULUMI_VERSION=3.254.0
+ARG PULUMI_VERSION=3.255.0
 # Obtain the version number from: https://dl.k8s.io/release/stable.txt
 # Version will be something like v1.32.2 but commands below require using the major and minor version only
 # kubectl releases: https://kubernetes.io/releases/
