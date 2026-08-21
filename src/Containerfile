@@ -31,7 +31,7 @@ ARG PNPM_VERSION=11.18.0
 
 # Shared devtools from containers.base (install-devtools.sh, apply-templates, merge-xml)
 # renovate: datasource=github-tags depName=spritely/containers.base extractVersion=^v(?<version>.*)$
-ARG CONTAINERS_BASE_VERSION=0.8.12
+ARG CONTAINERS_BASE_VERSION=0.8.18
 
 # Rename the image's built-in 'node' user to 'dev' (still 1000:1000) so the
 # account name matches all our other devcontainers.
